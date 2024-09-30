@@ -80,15 +80,24 @@ class Calendar(DomainModel):
         self.events = events
         self.public = public
 
-    def to_pydantic(self):
+    def to_pydantic(self, eventos_recorrentes: Optional[bool] = None):
         from src.api.schema import CalendarResponse
+
+        if eventos_recorrentes is None:
+            events = [event.to_pydantic() for event in self.events]
+
+        else:
+            events = [
+                event.to_pydantic() for event in self.events
+                if event.is_recurring == eventos_recorrentes
+            ]
 
         return CalendarResponse(
             id=self.get_id(),
             name=self.name,
             user_id=self.user_id,
             public=self.public,
-            events=[event.to_pydantic() for event in self.events]
+            events=events
         )
 
 

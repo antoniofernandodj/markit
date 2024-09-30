@@ -11,6 +11,12 @@ class UserCreateRequest(BaseModel):
     password: str
 
 
+class UserUpdateRequest(BaseModel):
+    name: str
+    email: EmailStr
+    password: str
+
+
 class CalendarCreateRequest(BaseModel):
     name: str
     user_id: str

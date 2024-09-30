@@ -51,7 +51,8 @@ async def cadastrar_calendario(
 async def acessar_calendario(
     calendar_id: str,
     request: Request,
-    uow = depends.uow
+    uow = depends.uow,
+    eventos_recorrentes: Optional[bool] = None
 ):
 
     token: Optional[str] = get_token(request)
@@ -76,7 +77,9 @@ async def acessar_calendario(
             detail="Calendário não encontrado"
         )
 
-    return calendar.to_pydantic()
+    return calendar.to_pydantic(
+        eventos_recorrentes
+    )
 
 
 
@@ -103,7 +106,9 @@ async def listar_calendarios(
             detail="Nenhum calendário encontrado"
         )
 
-    return [calendar.to_pydantic() for calendar in calendars]
+    return [
+        calendar.to_pydantic() for calendar in calendars
+    ]
 
 
 @router.delete(

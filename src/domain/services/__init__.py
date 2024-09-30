@@ -40,7 +40,12 @@ class UserService:
             await self.calendar_repository.delete(calendar)
         await self.repo.delete(user)
 
-    async def cadastrar_usuario(self, nome: str, email: str, senha: str) -> None:
+    async def cadastrar_usuario(
+        self,
+        nome: str,
+        email: str,
+        senha: str
+    ) -> None:
 
         existing_user = await self.repo.find_by_email(email)
         if existing_user:
@@ -49,6 +54,39 @@ class UserService:
         hashed = self.auth_service.generate_hash(senha)
         user = User(nome, email, hashed)
         await self.repo.save(user)
+
+    async def atualizar_dados_de_usuario(
+        self,
+        user_id: str,
+        nome: Optional[str] = None,
+        email: Optional[str] = None,
+        senha: Optional[str] = None
+    ) -> None:
+
+        user = await self.repo.get(user_id)
+        if not user:
+            raise ValueError("Usuário não encontrado")
+
+        if email:
+            existing_user = await self.repo.find_by_email(email)
+            if existing_user and existing_user.get_id() != user_id:
+                raise ValueError("Email já cadastrado por outro usuário")
+        
+        password_hash = None
+        if senha:
+            password_hash = self.auth_service.generate_hash(senha)
+
+        dados = {
+            'name': nome,
+            'email': email,
+            'password_hash': password_hash
+        }
+
+        for key in list(dados.keys()):
+            if dados.get(key) is None:
+                dados.pop(key, None)
+
+        await self.repo.update(user_id, dados)
 
 
 class CalendarService:
