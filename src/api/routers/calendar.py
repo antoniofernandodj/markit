@@ -1,190 +1,184 @@
-from contextlib import suppress
-from fastapi import APIRouter, Depends, HTTPException, Header, status, Request
-from typing import Annotated, Optional, Sequence
+from fastapi import APIRouter, status, Request
+from typing import Optional, Sequence
 from src.api import depends
-from src.api.schema import CalendarCreateRequest, CalendarResponse
-from src.api.security.auth import ApiAuthService
+from src.api.schema import ApiResponse, CalendarCreateRequest, CalendarResponse
 from src.api.utils import get_logged_in_id, get_token
+from fastapi_utils.cbv import cbv
+from src.domain.models.user import User
+from src.uow import UnityOfWork
 
 
 router = APIRouter(tags=['Calendar'])
 
 
-@router.post(
-    "/calendarios/",
-    summary='Cadastrar um novo calendário',
-    description="Permite cadastrar um novo calendário associado "
-    "a um usuário. O usuário deve existir no sistema.",
-    status_code=status.HTTP_201_CREATED
-)
-async def cadastrar_calendario(
-    request: CalendarCreateRequest,
-    uow = depends.uow
-):
+@cbv(router)
+class CalendarController:
 
-    user = await uow.user_service.repo.get(request.user_id)
-    if not user:
-        raise HTTPException(
-            status_code=404,
-            detail="Usuário não encontrado"
-        )
+    uow: UnityOfWork = depends.uow
+    request: Request
 
-    await uow.calendar_service.cadastrar_calendario(
-        request.name, request.public, user
+    @router.post(
+        "/calendarios/",
+        summary='Cadastrar um novo calendário',
+        description="Permite cadastrar um novo calendário associado "
+        "a um usuário. O usuário deve existir no sistema.",
+        status_code=status.HTTP_201_CREATED
     )
+    async def cadastrar_calendario(
+        self,
+        body: CalendarCreateRequest
+    ) -> ApiResponse:
 
-    return {
-        "detail": "Calendário cadastrado com sucesso",
-        "calendario": request.model_dump()
-    }
+        await self.uow.calendar_service.cadastrar_calendario(
+            nome=body.name,
+            public=body.public,
+            user_id=body.user_id
+        )
 
+        return ApiResponse(
+            detail="Calendário cadastrado com sucesso",
+            resource=body.model_dump()
+        )
 
-@router.get(
-    "/calendarios/{calendar_id}",
-    response_model=CalendarResponse,
-    summary='Obter um calendário por ID',
-    description='Busca um calendário específico pelo seu ID, '
-    'verificando as permissões do usuário logado ou do código de '
-    'compartilhamento fornecido.',
-    status_code=status.HTTP_200_OK
-)
-async def acessar_calendario(
-    calendar_id: str,
-    request: Request,
-    uow = depends.uow,
-    eventos_recorrentes: Optional[bool] = None
-):
-
-    token: Optional[str] = get_token(request)
-
-    permissao = await uow.calendar_service.obter_permissao_de_calendario(
-        logged_user_id=await get_logged_in_id(token),
-        sharing_code=request.headers.get('sharing_code'),
-        calendar_id=calendar_id,
-        permission_type='read'
+    @router.get(
+        "/calendarios/{calendar_id}",
+        response_model=CalendarResponse,
+        summary='Obter um calendário por ID',
+        description='Busca um calendário específico pelo seu ID, '
+        'verificando as permissões do usuário logado ou do código de '
+        'compartilhamento fornecido.',
+        status_code=status.HTTP_200_OK
     )
+    async def acessar_calendario(
+        self,
+        calendar_id: str,
+        eventos_recorrentes: Optional[bool] = None
+    ) -> CalendarResponse:
 
-    if not permissao:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Ação não autorizada!"
+        token: Optional[str] = get_token(self.request)
+
+        calendar = await self.uow.calendar_service.obter_calendario(
+            calendar_id=calendar_id,
+            logged_in_id=await get_logged_in_id(token),
+            sharing_code=self.request.headers.get('sharing_code')
         )
 
-    calendar = await uow.calendar_service.repo.get(calendar_id)
-    if not calendar:
-        raise HTTPException(
-            status_code=404,
-            detail="Calendário não encontrado"
+        return calendar.to_pydantic(
+            eventos_recorrentes
         )
 
-    return calendar.to_pydantic(
-        eventos_recorrentes
+
+    @router.get(
+        "/calendarios/agendas/{calendar_id}",
+        response_model=CalendarResponse,
+        summary='Obter uma agenda por ID',
+        description='Busca uma agenda (calendario de eventos recorrentes) '
+        'específica pelo seu ID, verificando as permissões '
+        'do usuário logado ou do código de compartilhamento fornecido.',
+        status_code=status.HTTP_200_OK
     )
+    async def acessar_agenda(self, calendar_id: str) -> CalendarResponse:
 
+        token: Optional[str] = get_token(self.request)
 
-
-@router.get(
-    "/calendarios/",
-    summary='Listar calendários do usuário logado',
-    description='Retorna uma lista de todos os calendários pertencentes '
-    'ao usuário logado.',
-    status_code=status.HTTP_200_OK
-)
-async def listar_calendarios(
-    current_user = depends.current_user,
-    uow = depends.uow
-) -> Sequence[CalendarResponse]:
-
-    calendars = (
-        await uow.calendar_service.obter_calendarios_por_usuario(
-            current_user.get_id()
+        agenda = await self.uow.calendar_service.obter_calendario(
+            calendar_id=calendar_id,
+            logged_in_id=await get_logged_in_id(token),
+            sharing_code=self.request.headers.get('sharing_code')
         )
+
+        return agenda.to_pydantic(eventos_recorrentes=True)
+
+
+    @router.get(
+        "/agendas/",
+        summary='Listar agendas do usuário logado',
+        description='Retorna uma lista de todas as agendas pertencentes '
+        'ao usuário logado.',
+        status_code=status.HTTP_200_OK
     )
-    if not calendars:
-        raise HTTPException(
-            status_code=404,
-            detail="Nenhum calendário encontrado"
+    async def listar_agendas(
+        self,
+        current_user: User = depends.current_user,
+    ) -> Sequence[CalendarResponse]:
+
+        calendars = (
+            await self.uow.calendar_service.obter_calendarios_por_usuario(
+                current_user.get_id()
+            )
         )
 
-    return [
-        calendar.to_pydantic() for calendar in calendars
-    ]
+        return [
+            calendar.to_pydantic(eventos_recorrentes=True)
+            for calendar in calendars
+        ]
 
-
-@router.delete(
-    "/calendarios/{calendar_id}",
-    summary='Deletar um calendário por ID',
-    description='Remove um calendário específico pelo seu ID, '
-    'verificando as permissões do usuário logado ou do código de '
-    'compartilhamento fornecido.',
-    status_code=status.HTTP_200_OK
-)
-async def deletar_calendario(
-    calendar_id: str,
-    request: Request,
-    uow = depends.uow
-):
-    
-    token: Optional[str] = get_token(request)
-    
-    permissao = await uow.calendar_service.obter_permissao_de_calendario(
-        logged_user_id=await get_logged_in_id(token),
-        sharing_code=request.headers.get('sharing_code'),
-        calendar_id=calendar_id,
-        permission_type='write'
+    @router.get(
+        "/calendarios/",
+        summary='Listar calendários do usuário logado',
+        description='Retorna uma lista de todos os calendários pertencentes '
+        'ao usuário logado.',
+        status_code=status.HTTP_200_OK
     )
+    async def listar_calendarios(
+        self,
+        current_user: User = depends.current_user,
+    ) -> Sequence[CalendarResponse]:
 
-    if not permissao:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Ação não autorizada!"
+        calendars = (
+            await self.uow.calendar_service.obter_calendarios_por_usuario(
+                current_user.get_id()
+            )
         )
 
-    calendar = await uow.calendar_service.repo.get(calendar_id)
-    if not calendar:
-        raise HTTPException(
-            status_code=404,
-            detail="Calendário não encontrado"
-        )
-    
-    await uow.calendar_service.deletar_calendario(calendar)
-    return {"detail": "Calendário removido com sucesso"}
+        return [
+            calendar.to_pydantic() for calendar in calendars
+        ]
 
-
-@router.put(
-    "/calendarios/{calendar_id}",
-    summary='Atualizar um calendário por ID',
-    description='Atualiza o nome de um calendário específico, '
-    'verificando as permissões do usuário logado ou do código '
-    'de compartilhamento fornecido.',
-    status_code=status.HTTP_200_OK
-)
-async def atualizar_calendario(
-    calendar_id: str,
-    name: str,
-    request: Request,
-    uow = depends.uow
-):
-
-    token: Optional[str] = get_token(request)
-
-    permissao = await uow.calendar_service.obter_permissao_de_calendario(
-        logged_user_id=await get_logged_in_id(token),
-        sharing_code=request.headers.get('sharing_code'),
-        calendar_id=calendar_id,
-        permission_type='write'
+    @router.delete(
+        "/calendarios/{calendar_id}",
+        response_model=ApiResponse,
+        summary='Deletar um calendário por ID',
+        description='Remove um calendário específico pelo seu ID, '
+        'verificando as permissões do usuário logado ou do código de '
+        'compartilhamento fornecido.',
+        status_code=status.HTTP_200_OK
     )
+    async def deletar_calendario(self, calendar_id: str) -> ApiResponse:
 
-    if not permissao:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Ação não autorizada!"
+        token: Optional[str] = get_token(self.request)
+
+        await self.uow.calendar_service.deletar_calendario(
+            calendar_id=calendar_id,
+            logged_in_id=await get_logged_in_id(token),
+            sharing_code=self.request.headers.get('sharing_code')
         )
 
-    await uow.calendar_service.atualizar_calendario(
-        calendar_id, name
-    )
+        return ApiResponse(detail="Calendário removido com sucesso")
 
-    return {
-        "detail": "Calendário atualizado com sucesso"
-    }
+
+    @router.put(
+        "/calendarios/{calendar_id}",
+        response_model=ApiResponse,
+        summary='Atualizar um calendário por ID',
+        description='Atualiza o nome de um calendário específico, '
+        'verificando as permissões do usuário logado ou do código '
+        'de compartilhamento fornecido.',
+        status_code=status.HTTP_200_OK
+    )
+    async def atualizar_calendario(
+        self,
+        calendar_id: str,
+        name: str,
+    ) -> ApiResponse:
+
+        token: Optional[str] = get_token(self.request)
+
+        await self.uow.calendar_service.atualizar_calendario(
+            calendar_id=calendar_id,
+            name=name,
+            sharing_code=self.request.headers.get('sharing_code'),
+            logged_in_id=await get_logged_in_id(token)
+        )
+
+        return ApiResponse(detail="Calendário atualizado com sucesso")
