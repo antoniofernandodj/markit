@@ -40,7 +40,7 @@ async def uow_callback():
     async with UnityOfWork() as uow:
         yield uow
 
-user_service = Depends(user_service_callback)
+user_service: UserService = Depends(user_service_callback)
 
 async def current_user_callback(
     user_service: UserService = user_service,
@@ -60,7 +60,7 @@ async def current_user_callback(
 
 
 uow: UnityOfWork = Depends(uow_callback)
-form_data = Depends(form_data_callback)
+form_data: OAuth2PasswordRequestForm = Depends(form_data_callback)
 event_service = Depends(event_service_callback)
 calendar_service = Depends(calendar_service_callback)
 sharing_service = Depends(sharing_service_callback)
