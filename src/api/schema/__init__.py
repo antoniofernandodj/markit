@@ -1,7 +1,7 @@
 
 
 from datetime import datetime
-from typing import Optional, Sequence
+from typing import Any, Dict, Optional, Sequence
 from pydantic import BaseModel, EmailStr
 
 
@@ -83,3 +83,12 @@ class SharingResponse(BaseModel):
     permissions: str
     public: bool
 
+
+class ApiResponse(BaseModel):
+    detail: str
+    resource: Optional[Dict[str, Any]] = None
+
+
+class LoginResponse(BaseModel):
+    access_token: str
+    token_type: str
