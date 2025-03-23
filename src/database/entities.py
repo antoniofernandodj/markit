@@ -1,4 +1,3 @@
-import enum
 from sqlalchemy import (
     Table,
     Column,
@@ -96,9 +95,17 @@ sharing = Table(
 )
 
 
-engine = create_async_engine(database_url)
-sync_engine = create_engine(sync_database_url)
+engine = create_async_engine(
+    database_url,
+    pool_size=10,
+    max_overflow=5
+)
 
+sync_engine = create_engine(
+    sync_database_url,
+    pool_size=10,
+    max_overflow=5
+)
 
 AsyncSessionFactory = async_sessionmaker(
     bind=engine,
