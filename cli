@@ -1,0 +1,4 @@
+#!/bin/sh
+
+uv run python cli.py "$@"
+PATH="${PATH}:${PWD}"
