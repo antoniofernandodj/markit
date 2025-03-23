@@ -19,6 +19,10 @@ from src.domain.services import (
 class UnityOfWork:
 
     async def __aenter__(self):
+        from src.database.mappers import start_mappers
+
+        start_mappers()
+
         self.session = await AsyncSessionFactory().__aenter__()  # type: ignore
 
         self.user_repository = UserRepository(session=self.session)
@@ -35,6 +39,10 @@ class UnityOfWork:
         return self
 
     async def __aexit__(self, exc_type, exc_value, exc_traceback):
+        from src.database.mappers import clear_mappers
+
+        clear_mappers()
+
         if exc_type is not None:
             await self.session.rollback()
         else:
@@ -45,3 +53,7 @@ class UnityOfWork:
                 raise
 
         await self.session.close()
+
+
+    async def commit(self):
+        await self.session.commit()
