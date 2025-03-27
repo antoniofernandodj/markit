@@ -1,7 +1,7 @@
 
 
 from datetime import datetime
-from typing import Any, Dict, Optional, Sequence
+from typing import Any, Dict, Optional, Sequence, List
 from pydantic import BaseModel, EmailStr
 
 
@@ -19,7 +19,6 @@ class UserUpdateRequest(BaseModel):
 
 class CalendarCreateRequest(BaseModel):
     name: str
-    user_id: str
     public: bool
 
 
@@ -74,6 +73,10 @@ class CalendarResponse(BaseModel):
     user_id: str
     events: Sequence[EventResponse]
     public: bool
+
+
+class CalendarsResponse(BaseModel):
+    calendars: List[CalendarResponse]
 
 
 class SharingResponse(BaseModel):
