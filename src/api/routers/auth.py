@@ -7,6 +7,7 @@ from fastapi_utils.cbv import cbv
 
 from src.domain.models.user import User
 from src.domain.services.user_service import UserService
+from src.uow import UnityOfWork
 
 
 router = APIRouter(tags=['Auth'])
@@ -15,10 +16,10 @@ router = APIRouter(tags=['Auth'])
 @cbv(router)
 class AuthController:
 
-    user_service: UserService = depends.user_service
+    uow: UnityOfWork = depends.uow
 
     @router.post(
-        "/login/", 
+        "/login/",
         response_model=LoginResponse,
         summary="Login do usuário",
         description="Autentica um usuário com base nas "
@@ -30,7 +31,12 @@ class AuthController:
     ):
         auth_service = ApiAuthService()
 
-        user = await self.user_service.repo.find_by_email(form_data.username)
+        print('----------')
+        print(form_data.username)
+        print(form_data.password)
+        print('----------')
+
+        user = await self.uow.user_service.repo.find_by_email(form_data.username)
         if not user or not auth_service.autenticar_usuario(user, form_data.password):
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
