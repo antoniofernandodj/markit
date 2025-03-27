@@ -1,7 +1,12 @@
-from fastapi import APIRouter, status, Request
+from fastapi import APIRouter, status, Request, HTTPException
 from typing import Optional, Sequence
 from src.api import depends
-from src.api.schema import ApiResponse, CalendarCreateRequest, CalendarResponse
+from src.api.schema import (
+    ApiResponse,
+    CalendarCreateRequest,
+    CalendarResponse,
+    CalendarsResponse
+)
 from src.api.utils import get_logged_in_id, get_token
 from fastapi_utils.cbv import cbv
 from src.domain.models.user import User
@@ -19,6 +24,7 @@ class CalendarController:
 
     @router.post(
         "/calendarios/",
+        response_model=ApiResponse,
         summary='Cadastrar um novo calendário',
         description="Permite cadastrar um novo calendário associado "
         "a um usuário. O usuário deve existir no sistema.",
@@ -29,10 +35,20 @@ class CalendarController:
         body: CalendarCreateRequest
     ) -> ApiResponse:
 
+        user_id = await get_logged_in_id(
+            get_token(self.request)
+        )
+
+        if user_id is None:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Usuário não autenticado"
+            )
+
         await self.uow.calendar_service.cadastrar_calendario(
             nome=body.name,
             public=body.public,
-            user_id=body.user_id
+            user_id=user_id
         )
 
         return ApiResponse(
@@ -55,17 +71,15 @@ class CalendarController:
         eventos_recorrentes: Optional[bool] = None
     ) -> CalendarResponse:
 
-        token: Optional[str] = get_token(self.request)
-
         calendar = await self.uow.calendar_service.obter_calendario(
             calendar_id=calendar_id,
-            logged_in_id=await get_logged_in_id(token),
+            logged_in_id=await get_logged_in_id(
+                get_token(self.request)
+            ),
             sharing_code=self.request.headers.get('sharing_code')
         )
 
-        return calendar.to_pydantic(
-            eventos_recorrentes
-        )
+        return calendar.to_pydantic(eventos_recorrentes)
 
 
     @router.get(
@@ -79,11 +93,11 @@ class CalendarController:
     )
     async def acessar_agenda(self, calendar_id: str) -> CalendarResponse:
 
-        token: Optional[str] = get_token(self.request)
-
         agenda = await self.uow.calendar_service.obter_calendario(
             calendar_id=calendar_id,
-            logged_in_id=await get_logged_in_id(token),
+            logged_in_id=await get_logged_in_id(
+                get_token(self.request)
+            ),
             sharing_code=self.request.headers.get('sharing_code')
         )
 
@@ -95,45 +109,44 @@ class CalendarController:
         summary='Listar agendas do usuário logado',
         description='Retorna uma lista de todas as agendas pertencentes '
         'ao usuário logado.',
+        response_model=CalendarsResponse,
         status_code=status.HTTP_200_OK
     )
     async def listar_agendas(
         self,
         current_user: User = depends.current_user,
-    ) -> Sequence[CalendarResponse]:
+    ) -> CalendarsResponse:
 
-        calendars = (
-            await self.uow.calendar_service.obter_calendarios_por_usuario(
-                current_user.get_id()
-            )
-        )
-
-        return [
+        return CalendarsResponse(calendars=[
             calendar.to_pydantic(eventos_recorrentes=True)
-            for calendar in calendars
-        ]
+            for calendar in (
+                await self.uow.calendar_service.obter_calendarios_por_usuario(
+                    current_user.get_id()
+                )
+            )
+        ])
 
     @router.get(
         "/calendarios/",
         summary='Listar calendários do usuário logado',
         description='Retorna uma lista de todos os calendários pertencentes '
         'ao usuário logado.',
+        response_model=CalendarsResponse,
         status_code=status.HTTP_200_OK
     )
     async def listar_calendarios(
         self,
         current_user: User = depends.current_user,
-    ) -> Sequence[CalendarResponse]:
+    ) -> CalendarsResponse:
 
-        calendars = (
-            await self.uow.calendar_service.obter_calendarios_por_usuario(
-                current_user.get_id()
+        return CalendarsResponse(calendars=[
+            calendar.to_pydantic()
+            for calendar in (
+                await self.uow.calendar_service.obter_calendarios_por_usuario(
+                    current_user.get_id()
+                )
             )
-        )
-
-        return [
-            calendar.to_pydantic() for calendar in calendars
-        ]
+        ])
 
     @router.delete(
         "/calendarios/{calendar_id}",
@@ -146,11 +159,11 @@ class CalendarController:
     )
     async def deletar_calendario(self, calendar_id: str) -> ApiResponse:
 
-        token: Optional[str] = get_token(self.request)
-
         await self.uow.calendar_service.deletar_calendario(
             calendar_id=calendar_id,
-            logged_in_id=await get_logged_in_id(token),
+            logged_in_id=await get_logged_in_id(
+                get_token(self.request)
+            ),
             sharing_code=self.request.headers.get('sharing_code')
         )
 
@@ -172,13 +185,13 @@ class CalendarController:
         name: str,
     ) -> ApiResponse:
 
-        token: Optional[str] = get_token(self.request)
-
         await self.uow.calendar_service.atualizar_calendario(
             calendar_id=calendar_id,
             name=name,
             sharing_code=self.request.headers.get('sharing_code'),
-            logged_in_id=await get_logged_in_id(token)
+            logged_in_id=await get_logged_in_id(
+                get_token(self.request)
+            )
         )
 
         return ApiResponse(detail="Calendário atualizado com sucesso")
