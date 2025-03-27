@@ -9,15 +9,11 @@ def start_mappers():
     from src.database.entities import users, calendars, events, sharing
     from sqlalchemy.orm import relationship, Mapper  # noqa
 
-    # Limpa os mapeamentos antes de recriá-los
     global mapper_registry
     mapper_registry.dispose()
-    mapper_registry = registry()  # Recria o registry
-
+    mapper_registry = registry()
     event_mapper: Mapper[Event] = mapper_registry.map_imperatively(Event, events)
-
     sharing_mapper: Mapper[Sharing] = mapper_registry.map_imperatively(Sharing, sharing)
-
     calendar_mapper: Mapper[Calendar] = mapper_registry.map_imperatively(
         Calendar,
         calendars,
