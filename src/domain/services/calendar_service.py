@@ -70,6 +70,30 @@ class CalendarService:
         public: bool,
         user_id: str,
     ) -> Calendar:
+        """
+        class Event(DomainModel):
+            def __init__(
+                self,
+                calendar_id: str,
+                title: str,
+                description: Optional[str],
+                start_time: datetime,
+                end_time: datetime,
+                is_recurring: Optional[bool] = False,
+                id: Optional[str] = None,
+            ):
+
+        class Calendar(DomainModel):
+            events: Sequence[Event]
+            def __init__(
+                self,
+                name: str,
+                user_id: str,
+                public: bool,
+                events: Sequence[Event] = [],
+                id: Optional[str] = None,
+            ):
+        """
 
         user = await self.user_service.repo.get(user_id)
         if not user:
