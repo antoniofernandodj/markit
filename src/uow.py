@@ -41,7 +41,6 @@ class UnityOfWork:
     async def __aexit__(self, exc_type, exc_value, exc_traceback):
         from src.database.mappers import clear_mappers
 
-        clear_mappers()
 
         if exc_type is not None:
             await self.session.rollback()
@@ -53,7 +52,7 @@ class UnityOfWork:
                 raise
 
         await self.session.close()
-
+        clear_mappers()
 
     async def commit(self):
         await self.session.commit()
