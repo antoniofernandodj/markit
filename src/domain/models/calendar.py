@@ -1,6 +1,8 @@
 from typing import Optional, Sequence
+from src.api.schema import EventResponse
 from src.domain.models.base import DomainModel
 from src.domain.models.event import Event
+from src.domain.models.sharing import Sharing
 
 
 class Calendar(DomainModel):
@@ -10,24 +12,24 @@ class Calendar(DomainModel):
         name: str,
         user_id: str,
         public: bool,
-        events: Sequence[Event] = [],
         id: Optional[str] = None,
     ):
         self.id = id
         self.name = name
         self.user_id = user_id
-        self.events = events
         self.public = public
+        self.events: Sequence[Event] = []
+        self.sharings: Sequence[Sharing] = []
 
     def to_pydantic(self, eventos_recorrentes: Optional[bool] = None):
         from src.api.schema import CalendarResponse
 
         if eventos_recorrentes is None:
-            events = [event.to_pydantic() for event in self.events]
+            events = [EventResponse.model_validate(event) for event in self.events]
 
         else:
             events = [
-                event.to_pydantic() for event in self.events
+                EventResponse.model_validate(event) for event in self.events
                 if event.is_recurring == eventos_recorrentes
             ]
 
