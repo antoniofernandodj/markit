@@ -201,7 +201,7 @@ class CalendarService:
             print('Nenhum compartilhamento encontrado')
             return False
 
-        if sharing.shared_with_id == logged_user_id:
+        if sharing.shared_with_email == logged_user_id:
             print('Calendario compartilhado com o usuario logado')
             return True
 
