@@ -1,3 +1,4 @@
+from typing_extensions import Optional
 from fastapi import APIRouter, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 from src.api import depends
@@ -17,6 +18,7 @@ router = APIRouter(tags=['Auth'])
 class AuthController:
 
     uow: UnityOfWork = depends.uow
+    token: Optional[str] = depends.token
 
     @router.post(
         "/login/",
