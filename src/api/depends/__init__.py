@@ -1,9 +1,10 @@
+from typing_extensions import Optional
 from fastapi import Depends, HTTPException
 from fastapi.security import OAuth2PasswordRequestForm, OAuth2PasswordBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 from src.api.schema import UserResponse
 from src.api.security.auth import ApiAuthService
-from src.api.utils import get_session
+from src.api.utils import get_session, get_token
 from src.domain.models import User
 from src.domain.services import (
     CalendarService,
@@ -55,7 +56,7 @@ async def current_user_callback(
             status_code=404,
             detail="Usuário não encontrado"
         )
-    
+
     return user
 
 
@@ -65,3 +66,4 @@ event_service = Depends(event_service_callback)
 calendar_service = Depends(calendar_service_callback)
 sharing_service = Depends(sharing_service_callback)
 current_user: User = Depends(current_user_callback)
+token: Optional[str] = Depends(get_token)
