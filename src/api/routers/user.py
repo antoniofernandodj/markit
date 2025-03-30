@@ -1,3 +1,4 @@
+from typing_extensions import Optional
 from fastapi import APIRouter, HTTPException, status
 from src.api import depends
 from src.api.schema import ApiResponse, UserCreateRequest, UserUpdateRequest
@@ -12,6 +13,7 @@ router = APIRouter(tags=['User'])
 class UserController:
 
     uow: UnityOfWork = depends.uow
+    token: Optional[str] = depends.token
 
     @router.post(
         "/usuarios/",
