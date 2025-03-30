@@ -20,7 +20,7 @@ class SharingService:
     async def compartilhar_calendario(
         self,
         calendar_id: str,
-        shared_with_id: str,
+        shared_with_email: str,
         public: bool,
         permissions: str
     ) -> Sharing:
@@ -38,8 +38,8 @@ class SharingService:
         usuario_repository = UserRepository(self.session)
 
         shared_with = (
-            await usuario_repository.get(
-                shared_with_id
+            await usuario_repository.find_by_email(
+                shared_with_email
             )
         )
 
@@ -48,7 +48,7 @@ class SharingService:
 
         sharing = await self.repo.find_by(
             calendar_id=calendar_id,
-            shared_with_id=shared_with_id
+            shared_with_email=shared_with_email
         )
 
         if sharing:
@@ -56,7 +56,7 @@ class SharingService:
 
         sharing = Sharing(
             calendar_id=calendar.get_id(),
-            shared_with_id=shared_with.get_id(),
+            shared_with_email=shared_with.email,
             permissions=permissions,
             public=public
         )
