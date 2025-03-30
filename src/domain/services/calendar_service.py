@@ -1,6 +1,7 @@
 from typing import Any, Dict, Optional, Sequence
 from sqlalchemy.ext.asyncio import AsyncSession
 from src.domain.models import Calendar
+from src.domain.models.sharing import Sharing
 from src.repositories import SharingRepository, CalendarRepository
 from src.domain.exceptions import (
     CalendarioNaoEncontradoException,
@@ -16,6 +17,8 @@ class CalendarService:
     def __init__(self, session: AsyncSession):
         self.session = session
         self.repo = CalendarRepository(self.session)
+        self.sharing_repo = SharingRepository(self.session)
+
         self.events_service = EventService(self.session)
         self.user_service = UserService(self.session)
 
@@ -26,14 +29,12 @@ class CalendarService:
         sharing_code: Optional[str]
     ) -> Calendar:
 
-        permissao = await self.obter_permissao_de_calendario(
+        if not await self.obter_permissao_de_calendario(
             logged_user_id=logged_in_id,
             sharing_code=sharing_code,
             calendar_id=calendar_id,
             permission_type='read'
-        )
-
-        if not permissao:
+        ):
             raise PermissaoNaoConcedidaException
 
         calendar = await self.repo.get(calendar_id)
@@ -48,18 +49,16 @@ class CalendarService:
         logged_in_id: Optional[str],
         sharing_code: Optional[str]
     ):
-        permissao = await self.obter_permissao_de_calendario(
+
+        if not await self.obter_permissao_de_calendario(
             logged_user_id=logged_in_id,
             sharing_code=sharing_code,
             calendar_id=calendar_id,
             permission_type='read'
-        )
-
-        if not permissao:
+        ):
             raise PermissaoNaoConcedidaException
 
-        calendar = await self.repo.get(calendar_id)
-        if not calendar:
+        if not (calendar := await self.repo.get(calendar_id)):
             raise CalendarioNaoEncontradoException
 
         return calendar.to_pydantic(eventos_recorrentes=True)
@@ -95,13 +94,10 @@ class CalendarService:
             ):
         """
 
-        user = await self.user_service.repo.get(user_id)
-        if not user:
+        if not (user := await self.user_service.repo.get(user_id)):
             raise UsuarioNaoEncontradoException
 
-        calendar = Calendar(nome, user.get_id(), public=public)
-        await self.repo.save(calendar)
-        return calendar
+        return await self.repo.save(Calendar(nome, user.get_id(), public=public))
 
     async def obter_calendarios_por_usuario(
         self,
@@ -118,18 +114,15 @@ class CalendarService:
         public: Optional[bool] = None,
     ) -> None:
 
-        permissao = await self.obter_permissao_de_calendario(
+        if not await self.obter_permissao_de_calendario(
             logged_user_id=logged_in_id,
             sharing_code=sharing_code,
             calendar_id=calendar_id,
             permission_type='write'
-        )
-
-        if not permissao:
+        ):
             raise PermissaoNaoConcedidaException
 
         new_data: Dict[str, Any] = {'name': name}
-
         if public is not None:
             new_data['public'] = public
 
@@ -142,18 +135,15 @@ class CalendarService:
         sharing_code: Optional[str],
     ) -> None:
 
-        permissao = await self.obter_permissao_de_calendario(
+        if not await self.obter_permissao_de_calendario(
             logged_user_id=logged_in_id,
             sharing_code=sharing_code,
             calendar_id=calendar_id,
             permission_type='write'
-        )
-
-        if not permissao:
+        ):
             raise PermissaoNaoConcedidaException
 
-        calendar = await self.repo.get(calendar_id)
-        if not calendar:
+        if not (calendar := await self.repo.get(calendar_id)):
             raise CalendarioNaoEncontradoException
 
         events = await self.events_service.obter_eventos_por_calendario(calendar)
@@ -161,6 +151,12 @@ class CalendarService:
             await self.events_service.deletar_evento(
                 event.get_id(), logged_in_id, sharing_code
             )
+
+        sharings: Sequence[Sharing] = (
+            await self.sharing_repo.find_all_by_calendar(calendar)
+        )
+        for sharing in sharings:
+            await self.sharing_repo.delete(sharing)
 
         await self.repo.delete(calendar)
 
@@ -178,8 +174,7 @@ class CalendarService:
         permission_type: str
     ) -> bool:
 
-        calendar = await self.repo.get(calendar_id)
-        if calendar is None:
+        if (calendar := await self.repo.get(calendar_id)) is None:
             print('Calendario não encontrado')
             return False
 
@@ -196,8 +191,7 @@ class CalendarService:
             print('Nenhum codigo de compartilhamento encontrado')
             return False
 
-        sharing = await sharing_repository.find_by(id=sharing_code)
-        if sharing is None:
+        if (sharing := await sharing_repository.find_by(id=sharing_code)) is None:
             print('Nenhum compartilhamento encontrado')
             return False
 
