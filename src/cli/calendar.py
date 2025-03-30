@@ -1,5 +1,6 @@
 from typer import Typer, prompt, echo, confirm
 from typing import Optional
+from src.api.schema import CalendarResponse
 from src.api.utils import get_logged_in_id
 from src.cli.utils import run_async
 from src.uow import UnityOfWork
@@ -53,7 +54,10 @@ async def show(calendar_id: str, eventos_recorrentes: Optional[bool] = None):
             logged_in_id=logged_in_id,
             sharing_code=sharing_code,
         )
-        echo(calendar.to_pydantic(eventos_recorrentes).model_dump_json(indent=4))
+        echo(
+            CalendarResponse.model_validate_calendar_response(calendar, eventos_recorrentes)
+            .model_dump_json(indent=4)
+        )
 
 
 @app.command()
@@ -74,7 +78,10 @@ async def list_from_user():
         )
 
     for calendar in calendars:
-        echo(calendar.to_pydantic().model_dump_json(indent=4))
+        echo(
+            CalendarResponse.model_validate_calendar_response(calendar)
+            .model_dump_json(indent=4)
+        )
 
 
 @app.command()

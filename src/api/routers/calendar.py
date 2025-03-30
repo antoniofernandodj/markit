@@ -77,7 +77,7 @@ class CalendarController:
             sharing_code=self.request.headers.get('sharing_code')
         )
 
-        return calendar.to_pydantic(eventos_recorrentes)
+        return CalendarResponse.model_validate_calendar_response(calendar, eventos_recorrentes)
 
     @router.get(
         "/calendarios/agendas/{calendar_id}",
@@ -100,7 +100,7 @@ class CalendarController:
             sharing_code=self.request.headers.get('sharing_code')
         )
 
-        return agenda.to_pydantic(eventos_recorrentes=True)
+        return CalendarResponse.model_validate_calendar_response(agenda, True)
 
     @router.get(
         "/agendas/",
@@ -116,7 +116,7 @@ class CalendarController:
     ) -> CalendarsResponse:
 
         return CalendarsResponse(calendars=[
-            calendar.to_pydantic(eventos_recorrentes=True)
+            CalendarResponse.model_validate_calendar_response(calendar, True)
             for calendar in (
                 await self.uow.calendar_service.obter_calendarios_por_usuario(
                     current_user.get_id()
@@ -138,7 +138,7 @@ class CalendarController:
     ) -> CalendarsResponse:
 
         return CalendarsResponse(calendars=[
-            calendar.to_pydantic()
+            CalendarResponse.model_validate_calendar_response(calendar)
             for calendar in (
                 await self.uow.calendar_service.obter_calendarios_por_usuario(
                     current_user.get_id()

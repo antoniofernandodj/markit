@@ -1,5 +1,6 @@
 from typing import Any, Dict, Optional, Sequence
 from sqlalchemy.ext.asyncio import AsyncSession
+from src.api.schema import CalendarResponse
 from src.domain.models import Calendar
 from src.domain.models.sharing import Sharing
 from src.repositories import SharingRepository, CalendarRepository
@@ -60,7 +61,10 @@ class CalendarService:
         if not (calendar := await self.repo.get(calendar_id)):
             raise CalendarioNaoEncontradoException
 
-        return calendar.to_pydantic(eventos_recorrentes=True)
+        return CalendarResponse.model_validate_calendar_response(
+            model=calendar,
+            eventos_recorrentes=True
+        )
 
     async def cadastrar_calendario(
         self,

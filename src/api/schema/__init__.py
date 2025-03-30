@@ -4,6 +4,8 @@ from datetime import datetime
 from typing import Any, Dict, Optional, Sequence, List
 from pydantic import BaseModel, EmailStr
 
+from src.domain.models.calendar import Calendar
+
 
 class UserCreateRequest(BaseModel):
     name: str
@@ -73,6 +75,26 @@ class CalendarResponse(BaseModel):
     user_id: str
     events: Sequence[EventResponse]
     public: bool
+
+    @classmethod
+    def model_validate_calendar_response(cls, model: Calendar, eventos_recorrentes: Optional[bool] = None):
+
+        if eventos_recorrentes is None:
+            events = [EventResponse.model_validate(event) for event in model.events]
+
+        else:
+            events = [
+                EventResponse.model_validate(event) for event in model.events
+                if event.is_recurring == eventos_recorrentes
+            ]
+
+        return CalendarResponse(
+            id=model.get_id(),
+            name=model.name,
+            user_id=model.user_id,
+            public=model.public,
+            events=events
+        )
 
 
 class CalendarsResponse(BaseModel):

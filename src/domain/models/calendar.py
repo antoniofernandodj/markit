@@ -20,23 +20,3 @@ class Calendar(DomainModel):
         self.public = public
         self.events: Sequence[Event] = []
         self.sharings: Sequence[Sharing] = []
-
-    def to_pydantic(self, eventos_recorrentes: Optional[bool] = None):
-        from src.api.schema import CalendarResponse
-
-        if eventos_recorrentes is None:
-            events = [EventResponse.model_validate(event) for event in self.events]
-
-        else:
-            events = [
-                EventResponse.model_validate(event) for event in self.events
-                if event.is_recurring == eventos_recorrentes
-            ]
-
-        return CalendarResponse(
-            id=self.get_id(),
-            name=self.name,
-            user_id=self.user_id,
-            public=self.public,
-            events=events
-        )
