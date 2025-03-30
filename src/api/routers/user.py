@@ -32,7 +32,7 @@ class UserController:
         )
 
         await self.uow.commit()
-        await self.uow.session.refresh(user)
+        await self.uow.refresh([user])
 
         return ApiResponse(
             detail="Usuário cadastrado com sucesso!",
