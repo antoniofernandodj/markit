@@ -1,7 +1,7 @@
 from fastapi import APIRouter
 from typing import Sequence
 from src.api import depends
-from src.api.schema import ApiResponse, SharingCreateRequest, SharingResponse, SharingUpdateRequest
+from src.api.schema import ApiResponse, SharingCreateRequest, SharingResponse, SharingUpdateRequest, SharingsResponse
 from fastapi_utils.cbv import cbv
 
 from src.uow import UnityOfWork
@@ -31,11 +31,13 @@ class SharingController:
         sharing = (
             await self.uow.sharing_service.compartilhar_calendario(
                 calendar_id=body.calendar_id,
-                shared_with_id=body.shared_with_id,
+                shared_with_email=body.shared_with_email,
                 public=body.public,
                 permissions=body.permissions
             )
         )
+
+        await self.uow.commit()
         return ApiResponse(
             detail="Calendário compartilhado com sucesso!",
             resource=sharing.to_pydantic().model_dump()
@@ -44,14 +46,15 @@ class SharingController:
     @router.get(
         "/compartilhamentos/",
         summary="Listar compartilhamentos",
+        response_model=SharingsResponse,
         description="Lista todos os compartilhamentos de um calendário específico, "
         "retornando os usuários com quem foi compartilhado e as permissões concedidas."
     )
     async def listar_compartilhamentos(
         self,
         calendar_id: str,
-    ) -> Sequence[SharingResponse]:
-        
+    ) -> SharingsResponse:
+
         service = self.uow.sharing_service
 
         sharings = (
@@ -60,7 +63,7 @@ class SharingController:
             )
         )
 
-        return [sharing.to_pydantic() for sharing in sharings]
+        return SharingsResponse(sharings=[sharing.to_pydantic() for sharing in sharings])
 
     @router.delete(
         "/compartilhamentos/{sharing_id}",
@@ -70,9 +73,8 @@ class SharingController:
         "revogando o acesso de um usuário ao calendário."
     )
     async def deletar_compartilhamento(self, sharing_id: str):
-        
         await self.uow.sharing_service.deletar_compartilhamento(sharing_id)
-
+        await self.uow.commit()
         return ApiResponse(detail="Compartilhamento removido com sucesso")
 
     @router.put(
@@ -95,4 +97,6 @@ class SharingController:
             permissions=body.permissions,
             public=body.public
         )
+
+        await self.uow.commit()
         return ApiResponse(detail="Compartilhamento atualizado com sucesso")
