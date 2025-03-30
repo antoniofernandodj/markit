@@ -72,7 +72,7 @@ sharing = Table(
     Column('id', String(100), primary_key=True, default=default_uuid),
     Column('permissions', Enum(Permission), primary_key=True, default=default_uuid),
     Column('calendar_id', String(100), ForeignKey('calendars.id', ondelete='CASCADE')),
-    Column('shared_with_email', String(100), ForeignKey('users.email', ondelete='CASCADE')),
+    Column('shared_with_email', String(100)),
     Column('public', Boolean, default=False),
 )
 
