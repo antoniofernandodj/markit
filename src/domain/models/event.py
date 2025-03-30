@@ -22,17 +22,3 @@ class Event(DomainModel):
         self.start_time = start_time
         self.end_time = end_time
         self.is_recurring = is_recurring
-
-
-    def to_pydantic(self):
-        from src.api.schema import EventResponse
-
-        return EventResponse(
-            id=self.get_id(),
-            calendar_id=self.calendar_id,
-            title=self.title,
-            description=self.description,
-            start_time=self.start_time,
-            end_time=self.end_time,
-            is_recurring=self.is_recurring
-        )
