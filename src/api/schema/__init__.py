@@ -41,7 +41,7 @@ class EventUpdateRequest(BaseModel):
 
 class SharingCreateRequest(BaseModel):
     calendar_id: str
-    shared_with_id: str
+    shared_with_email: str
     permissions: str
     public: bool
 
@@ -82,9 +82,13 @@ class CalendarsResponse(BaseModel):
 class SharingResponse(BaseModel):
     id: str
     calendar_id: str
-    shared_with_id: str
+    shared_with_email: str
     permissions: str
     public: bool
+
+
+class SharingsResponse(BaseModel):
+    sharings: List[SharingResponse]
 
 
 class ApiResponse(BaseModel):
