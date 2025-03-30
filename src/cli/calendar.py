@@ -28,13 +28,15 @@ async def create():
     async with UnityOfWork() as uow:
         user = await uow.user_service.repo.get(user_id)
 
-        await uow.calendar_service.cadastrar_calendario(
+        calendario = await uow.calendar_service.cadastrar_calendario(
             nome=nome, public=publico, user_id=user.get_id()
         )
 
         await uow.commit()
+        await uow.refresh([calendario])
 
     echo("Calendário cadastrado com sucesso!")
+    echo(f"ID: {calendario.get_id()}")
 
 
 @app.command()
