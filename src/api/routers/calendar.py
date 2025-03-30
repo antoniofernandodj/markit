@@ -45,15 +45,18 @@ class CalendarController:
                 detail="Usuário não autenticado"
             )
 
-        await self.uow.calendar_service.cadastrar_calendario(
+        calendario = await self.uow.calendar_service.cadastrar_calendario(
             nome=body.name,
             public=body.public,
             user_id=user_id
         )
 
+        await self.uow.commit()
+        await self.uow.session.refresh(calendario)
+
         return ApiResponse(
             detail="Calendário cadastrado com sucesso",
-            resource=body.model_dump()
+            resource={"id": calendario.id}
         )
 
     @router.get(
@@ -81,7 +84,6 @@ class CalendarController:
 
         return calendar.to_pydantic(eventos_recorrentes)
 
-
     @router.get(
         "/calendarios/agendas/{calendar_id}",
         response_model=CalendarResponse,
@@ -91,7 +93,11 @@ class CalendarController:
         'do usuário logado ou do código de compartilhamento fornecido.',
         status_code=status.HTTP_200_OK
     )
-    async def acessar_agenda(self, calendar_id: str) -> CalendarResponse:
+    async def acessar_agenda(
+        self,
+        calendar_id: str,
+        eventos_recorrentes: Optional[bool] = None
+    ) -> CalendarResponse:
 
         agenda = await self.uow.calendar_service.obter_calendario(
             calendar_id=calendar_id,
@@ -102,7 +108,6 @@ class CalendarController:
         )
 
         return agenda.to_pydantic(eventos_recorrentes=True)
-
 
     @router.get(
         "/agendas/",
@@ -157,7 +162,10 @@ class CalendarController:
         'compartilhamento fornecido.',
         status_code=status.HTTP_200_OK
     )
-    async def deletar_calendario(self, calendar_id: str) -> ApiResponse:
+    async def deletar_calendario(
+        self,
+        calendar_id: str
+    ) -> ApiResponse:
 
         await self.uow.calendar_service.deletar_calendario(
             calendar_id=calendar_id,
@@ -166,9 +174,8 @@ class CalendarController:
             ),
             sharing_code=self.request.headers.get('sharing_code')
         )
-
+        await self.uow.commit()
         return ApiResponse(detail="Calendário removido com sucesso")
-
 
     @router.put(
         "/calendarios/{calendar_id}",
@@ -193,5 +200,5 @@ class CalendarController:
                 get_token(self.request)
             )
         )
-
+        await self.uow.commit()
         return ApiResponse(detail="Calendário atualizado com sucesso")
