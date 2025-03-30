@@ -36,9 +36,7 @@ class CalendarController:
         body: CalendarCreateRequest
     ) -> ApiResponse:
 
-        user_id = await get_logged_in_id(self.token)
-
-        if user_id is None:
+        if (user_id := await get_logged_in_id(self.token)) is None:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Usuário não autenticado"
@@ -51,7 +49,7 @@ class CalendarController:
         )
 
         await self.uow.commit()
-        await self.uow.session.refresh(calendario)
+        await self.uow.refresh([calendario])
 
         return ApiResponse(
             detail="Calendário cadastrado com sucesso",
