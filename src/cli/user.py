@@ -1,5 +1,5 @@
 from typer import Typer, confirm, prompt, echo
-from src.api.schema import UserCreateRequest, UserUpdateRequest
+from src.api.schema import UserCreateRequest, UserResponse, UserUpdateRequest
 from src.cli.utils import run_async
 from src.uow import UnityOfWork
 
@@ -91,4 +91,4 @@ async def list_all():
             return
 
         for usuario in usuarios:
-            echo(usuario.to_pydantic().model_dump_json(indent=4))
+            echo(UserResponse.model_validate(usuario).model_dump_json(indent=4))
