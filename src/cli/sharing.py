@@ -26,6 +26,7 @@ async def calendar(calendar_id: str):
         )
 
         await uow.commit()
+        await uow.refresh([sharing])
 
     echo("Calendário compartilhado com sucesso!")
     echo(SharingResponse.model_validate(sharing).model_dump_json(indent=4))

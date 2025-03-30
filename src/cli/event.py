@@ -1,4 +1,5 @@
 from datetime import datetime
+from sqlalchemy import exc
 from typer import Typer, confirm, prompt, echo
 from typing import Optional
 from src.api.schema import EventCreateRequest, EventResponse, EventUpdateRequest
@@ -54,7 +55,7 @@ async def create():
     )
 
     async with UnityOfWork() as uow:
-        await uow.event_service.cadastrar_evento(
+        evento = await uow.event_service.cadastrar_evento(
             calendar_id=body.calendar_id,
             titulo=body.title,
             descricao=body.description,
@@ -64,8 +65,10 @@ async def create():
         )
 
         await uow.commit()
+        await uow.refresh([evento])
 
     echo("Evento cadastrado com sucesso!")
+    echo(f"ID: {evento.get_id()}")
 
 
 @app.command()
