@@ -7,6 +7,7 @@ from src.api import depends
 from src.api.utils import get_logged_in_id, get_token
 from fastapi_utils.cbv import cbv
 
+from src.domain.models.event import Event
 from src.uow import UnityOfWork
 
 
@@ -32,13 +33,13 @@ class EventController:
         event_id: str,
     ) -> EventResponse:
 
-        event = await self.uow.event_service.acessar_evento_por_id(
+        event: Event = await self.uow.event_service.acessar_evento_por_id(
             event_id=event_id,
             logged_in_id=await get_logged_in_id(self.token),
             sharing_code=self.request.headers.get('sharing_code')
         )
 
-        return event.to_pydantic()
+        return EventResponse.model_validate(event)
 
 
     @router.post(
@@ -59,7 +60,7 @@ class EventController:
             recorrente=body.is_recurring
         )
         await self.uow.commit()
-        await self.uow.session.refresh(evento)
+        await self.uow.refresh([evento])
         return ApiResponse(
             detail="Evento cadastrado com sucesso!",
             resource={'id': evento.id}
