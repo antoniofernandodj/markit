@@ -1,3 +1,4 @@
+from typing_extensions import Optional
 from fastapi import APIRouter
 from typing import Sequence
 from src.api import depends
