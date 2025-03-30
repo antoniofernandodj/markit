@@ -12,14 +12,14 @@ app = Typer(help='Comandos para gerenciar compartilhamentos.')
 async def calendar(calendar_id: str):
     """Compartilha um calendário com outro usuário."""
 
-    shared_with_id = prompt("ID do usuário com quem deseja compartilhar")
+    shared_with_email = prompt("ID do usuário com quem deseja compartilhar")
     public = confirm("Deseja tornar o compartilhamento público?")
     permissions = prompt("Permissões", type=Choice(["read", "write", "read_write"]))
 
     async with UnityOfWork() as uow:
         sharing = await uow.sharing_service.compartilhar_calendario(
             calendar_id=calendar_id,
-            shared_with_id=shared_with_id,
+            shared_with_email=shared_with_email,
             public=public,
             permissions=permissions
         )
