@@ -54,8 +54,12 @@ class UserService:
         senha: Optional[str] = None
     ) -> None:
 
-        user = await self.repo.get(user_id)
-        if not user:
+        dados = {
+            'name': nome,
+            'email': email,
+        }
+
+        if not await self.repo.get(user_id):
             raise UsuarioNaoEncontradoException
 
         if email:
@@ -63,21 +67,12 @@ class UserService:
             if existing_user and existing_user.get_id() != user_id:
                 raise EmailJaCadastradoException
 
-        password_hash = None
         if senha:
-            password_hash = self.auth_service.generate_hash(senha)
+            dados['password_hash'] = self.auth_service.generate_hash(senha)
 
-        dados = {
-            'name': nome,
-            'email': email,
-            'password_hash': password_hash
-        }
-
-        for key in list(dados.keys()):
-            if dados.get(key) is None:
-                dados.pop(key, None)
-
-        await self.repo.update(user_id, dados)
+        await self.repo.update(user_id, {
+            key: value for key, value in dados.items() if value is not None
+        })
 
     async def obter_por_email(self, email: str) -> Optional[User]:
         return await self.repo.find_by_email(email)
