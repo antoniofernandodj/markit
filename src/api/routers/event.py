@@ -18,6 +18,7 @@ class EventController:
 
     uow: UnityOfWork = depends.uow
     request: Request
+    token: Optional[str] = depends.token
 
     @router.get(
         "/eventos/{event_id}",
@@ -29,12 +30,11 @@ class EventController:
     async def acessar_evento_por_id(
         self,
         event_id: str,
-        token: Optional[str] = depends.token
     ) -> EventResponse:
 
         event = await self.uow.event_service.acessar_evento_por_id(
             event_id=event_id,
-            logged_in_id=await get_logged_in_id(token),
+            logged_in_id=await get_logged_in_id(self.token),
             sharing_code=self.request.headers.get('sharing_code')
         )
 
@@ -76,12 +76,11 @@ class EventController:
     async def deletar_evento(
         self,
         event_id: str,
-        token: Optional[str] = depends.token
     ) -> ApiResponse:
 
         await self.uow.event_service.deletar_evento(
             event_id=event_id,
-            logged_in_id=await get_logged_in_id(token),
+            logged_in_id=await get_logged_in_id(self.token),
             sharing_code=self.request.headers.get('sharing_code')
         )
         await self.uow.commit()
@@ -99,7 +98,6 @@ class EventController:
         self,
         event_id: str,
         body: EventUpdateRequest,
-        token: Optional[str] = depends.token
     ) -> ApiResponse:
 
         await self.uow.event_service.atualizar_evento(
@@ -109,7 +107,7 @@ class EventController:
             inicio=body.start_time,
             fim=body.end_time,
             recorrente=body.is_recurring,
-            logged_in_id=await get_logged_in_id(token),
+            logged_in_id=await get_logged_in_id(self.token),
             sharing_code=self.request.headers.get('sharing_code'),
         )
         await self.uow.commit()
