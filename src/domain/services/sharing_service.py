@@ -34,10 +34,10 @@ class SharingService:
         )):
             raise CalendarioNaoEncontradoException
 
-        if (await self.repo.find_by(
+        if await self.repo.find_by(
             calendar_id=calendar_id,
             shared_with_email=shared_with_email
-        )):
+        ):
             raise CompartilhamentoJaExistenteException
 
         sharing = Sharing(
