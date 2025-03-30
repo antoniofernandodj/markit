@@ -21,14 +21,3 @@ class Sharing(DomainModel):
 
     def get_permissions(self):
         return self.permissions.value
-
-    def to_pydantic(self):
-        from src.api.schema import SharingResponse
-
-        return SharingResponse(
-            id=self.get_id(),
-            calendar_id=self.calendar_id,
-            shared_with_email=self.shared_with_email,
-            permissions=self.get_permissions(),
-            public=self.public
-        )
