@@ -39,9 +39,11 @@ class SharingController:
         )
 
         await self.uow.commit()
+        await self.uow.refresh([sharing])
+
         return ApiResponse(
             detail="Calendário compartilhado com sucesso!",
-            resource=sharing.to_pydantic().model_dump()
+            resource={"id": sharing.id}
         )
 
     @router.get(
@@ -64,7 +66,7 @@ class SharingController:
             )
         )
 
-        return SharingsResponse(sharings=[sharing.to_pydantic() for sharing in sharings])
+        return SharingsResponse(sharings=[SharingResponse.model_validate(sharing) for sharing in sharings])
 
     @router.delete(
         "/compartilhamentos/{sharing_id}",
