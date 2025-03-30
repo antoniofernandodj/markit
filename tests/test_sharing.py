@@ -1,6 +1,6 @@
 from src.uow import UnityOfWork
 from src.domain.models import Calendar, User, Sharing, Permission
-    
+
 
 
 async def test_write():
@@ -10,7 +10,7 @@ async def test_write():
             email="joanedoe@example.com",
             senha="hashed_password"
         )
-        
+
 
     async with UnityOfWork() as uow:
 
@@ -30,7 +30,7 @@ async def test_write():
 
         sharing = Sharing(
             calendar_id=calendar.get_id(),
-            shared_with_id=joane_doe.get_id(),
+            shared_with_email=joane_doe.email,
             permissions=Permission.read.value,
             public=True
         )
@@ -44,7 +44,7 @@ async def test_write():
         sharings = await uow.sharing_repository.find_all_by_calendar(calendar)
 
         assert len(sharings) == 1
-        
+
 
 
 async def test_update():
@@ -93,7 +93,7 @@ async def test_delete():
 
 
 # async def test_delete_users():
-#     async with UnityOfWork() as uow:        
+#     async with UnityOfWork() as uow:
 
 #         if joane := await uow.user_repository.find_by_email("joanedoe@example.com"):
 #             calendars = await uow.calendar_repository.find_all_by_user(joane.get_id())
