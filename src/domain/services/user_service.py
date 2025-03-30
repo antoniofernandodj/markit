@@ -35,7 +35,7 @@ class UserService:
         nome: str,
         email: str,
         senha: str
-    ) -> None:
+    ) -> User:
 
         existing_user = await self.repo.find_by_email(email)
         if existing_user:
@@ -44,6 +44,7 @@ class UserService:
         hashed = self.auth_service.generate_hash(senha)
         user = User(nome, email, hashed)
         await self.repo.save(user)
+        return user
 
     async def atualizar_dados_de_usuario(
         self,
@@ -77,3 +78,6 @@ class UserService:
                 dados.pop(key, None)
 
         await self.repo.update(user_id, dados)
+
+    async def obter_por_email(self, email: str) -> Optional[User]:
+        return await self.repo.find_by_email(email)
