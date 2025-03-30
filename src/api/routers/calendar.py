@@ -21,6 +21,7 @@ class CalendarController:
 
     uow: UnityOfWork = depends.uow
     request: Request
+    token: Optional[str] = depends.token
 
     @router.post(
         "/calendarios/",
@@ -35,9 +36,7 @@ class CalendarController:
         body: CalendarCreateRequest
     ) -> ApiResponse:
 
-        user_id = await get_logged_in_id(
-            get_token(self.request)
-        )
+        user_id = await get_logged_in_id(self.token)
 
         if user_id is None:
             raise HTTPException(
@@ -76,9 +75,7 @@ class CalendarController:
 
         calendar = await self.uow.calendar_service.obter_calendario(
             calendar_id=calendar_id,
-            logged_in_id=await get_logged_in_id(
-                get_token(self.request)
-            ),
+            logged_in_id=await get_logged_in_id(self.token),
             sharing_code=self.request.headers.get('sharing_code')
         )
 
@@ -101,9 +98,7 @@ class CalendarController:
 
         agenda = await self.uow.calendar_service.obter_calendario(
             calendar_id=calendar_id,
-            logged_in_id=await get_logged_in_id(
-                get_token(self.request)
-            ),
+            logged_in_id=await get_logged_in_id(self.token),
             sharing_code=self.request.headers.get('sharing_code')
         )
 
@@ -164,14 +159,12 @@ class CalendarController:
     )
     async def deletar_calendario(
         self,
-        calendar_id: str
+        calendar_id: str,
     ) -> ApiResponse:
 
         await self.uow.calendar_service.deletar_calendario(
             calendar_id=calendar_id,
-            logged_in_id=await get_logged_in_id(
-                get_token(self.request)
-            ),
+            logged_in_id=await get_logged_in_id(self.token),
             sharing_code=self.request.headers.get('sharing_code')
         )
         await self.uow.commit()
@@ -196,9 +189,7 @@ class CalendarController:
             calendar_id=calendar_id,
             name=name,
             sharing_code=self.request.headers.get('sharing_code'),
-            logged_in_id=await get_logged_in_id(
-                get_token(self.request)
-            )
+            logged_in_id=await get_logged_in_id(self.token)
         )
         await self.uow.commit()
         return ApiResponse(detail="Calendário atualizado com sucesso")
