@@ -37,8 +37,7 @@ class CalendarService:
         ):
             raise PermissaoNaoConcedidaException
 
-        calendar = await self.repo.get(calendar_id)
-        if not calendar:
+        if not (calendar := await self.repo.get(calendar_id)):
             raise CalendarioNaoEncontradoException
 
         return calendar
