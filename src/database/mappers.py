@@ -15,17 +15,15 @@ def start_mappers():
     event_mapper: Mapper[Event] = mapper_registry.map_imperatively(Event, events)
     sharing_mapper: Mapper[Sharing] = mapper_registry.map_imperatively(Sharing, sharing)
     calendar_mapper: Mapper[Calendar] = mapper_registry.map_imperatively(
-        Calendar,
-        calendars,
+        Calendar, calendars,
         properties={
-            "events": relationship(event_mapper),
-            "sharing": relationship(sharing_mapper),
+            "events": relationship(Event),
+            "sharings": relationship(Sharing),
         },
     )
 
     mapper_registry.map_imperatively(
-        User,
-        users,
+        User, users,
         properties={"calendars": relationship(calendar_mapper)},
     )
 
