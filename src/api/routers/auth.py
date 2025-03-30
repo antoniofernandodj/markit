@@ -56,4 +56,4 @@ class AuthController:
         self,
         current_user: User = depends.current_user
     ):
-        return current_user.to_pydantic()
+        return UserResponse.model_validate(current_user)
