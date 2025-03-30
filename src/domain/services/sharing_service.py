@@ -27,36 +27,22 @@ class SharingService:
 
         calendar_service = CalendarService(self.session)
 
-        calendar = (
+        if not (calendar := (
             await calendar_service.repo.find(
                 calendar_id
             )
-        )
-        if not calendar:
+        )):
             raise CalendarioNaoEncontradoException
 
-        usuario_repository = UserRepository(self.session)
-
-        shared_with = (
-            await usuario_repository.find_by_email(
-                shared_with_email
-            )
-        )
-
-        if not shared_with:
-            raise UsuarioNaoEncontradoException
-
-        sharing = await self.repo.find_by(
+        if (await self.repo.find_by(
             calendar_id=calendar_id,
             shared_with_email=shared_with_email
-        )
-
-        if sharing:
+        )):
             raise CompartilhamentoJaExistenteException
 
         sharing = Sharing(
             calendar_id=calendar.get_id(),
-            shared_with_email=shared_with.email,
+            shared_with_email=shared_with_email,
             permissions=permissions,
             public=public
         )
@@ -70,8 +56,7 @@ class SharingService:
 
         calendar_repository = CalendarRepository(self.session)
 
-        calendar = await calendar_repository.get(calendar_id)
-        if not calendar:
+        if not (calendar := await calendar_repository.get(calendar_id)):
             raise CalendarioNaoEncontradoException
 
         return await self.repo.find_all_by_calendar(calendar)
@@ -92,8 +77,8 @@ class SharingService:
         self,
         sharing_id: str
     ) -> None:
-        sharing = await self.repo.get(sharing_id)
-        if not sharing:
+
+        if not (sharing := await self.repo.get(sharing_id)):
             raise CompartilhamentoNaoEncontradoException
 
         await self.repo.delete(sharing)
