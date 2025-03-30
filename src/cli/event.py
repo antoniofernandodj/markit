@@ -1,7 +1,7 @@
 from datetime import datetime
 from typer import Typer, confirm, prompt, echo
 from typing import Optional
-from src.api.schema import EventCreateRequest, EventUpdateRequest
+from src.api.schema import EventCreateRequest, EventResponse, EventUpdateRequest
 from src.api.utils import get_logged_in_id
 from src.cli.utils import run_async
 from src.uow import UnityOfWork
@@ -26,7 +26,7 @@ async def show(event_id: str):
             sharing_code=sharing_code
         )
 
-    echo(event.to_pydantic().model_dump_json(indent=4))
+    echo(EventResponse.model_validate(event).model_dump_json(indent=4))
 
 
 @app.command()
@@ -143,4 +143,4 @@ async def list_from_calendar(calendar_id: str):
         )
 
         for evento in eventos:
-            echo(evento.to_pydantic().model_dump_json(indent=4))
+            echo(EventResponse.model_validate(evento).model_dump_json(indent=4))
