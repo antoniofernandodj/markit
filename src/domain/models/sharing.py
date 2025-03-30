@@ -8,14 +8,14 @@ class Sharing(DomainModel):
     def __init__(
         self,
         calendar_id: str,
-        shared_with_id: str,
+        shared_with_email: str,
         permissions: str,
         public: bool,
         id: Optional[str] = None,
     ):
         self.id = id
         self.calendar_id = calendar_id
-        self.shared_with_id = shared_with_id
+        self.shared_with_email = shared_with_email
         self.permissions = Permission(permissions)
         self.public = public
 
@@ -28,7 +28,7 @@ class Sharing(DomainModel):
         return SharingResponse(
             id=self.get_id(),
             calendar_id=self.calendar_id,
-            shared_with_id=self.shared_with_id,
+            shared_with_email=self.shared_with_email,
             permissions=self.get_permissions(),
             public=self.public
         )
