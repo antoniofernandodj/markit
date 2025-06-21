@@ -28,9 +28,9 @@ python
 Copy
 Edit
 async def users_get(self, params: Optional[Dict[str, Any]] = None) -> List[User]:
-    """
+    '''
     Gets a list of users
-    """
+    '''
     url = "/users"
     response = await self.client.request("GET", url, params=params)
     response.raise_for_status()
@@ -113,14 +113,14 @@ Quer seguir por algum desses caminhos?
 """
 
 import json
-from os import path
+import re
 import sys
-from typing import Optional
-import httpx
 import textwrap
 from contextlib import suppress
-import re
+from os import path
+from typing import Optional
 
+import httpx
 
 TEMPLATE = """import httpx
 from urllib.parse import urljoin
