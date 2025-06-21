@@ -1,4 +1,119 @@
+"""
+Esse script em Python serve como gerador automático de cliente HTTP baseado em uma especificação OpenAPI. Ele é especialmente útil para quem quer consumir APIs rapidamente sem escrever manualmente todos os métodos de acesso. A seguir, faço uma análise e explicação detalhada, incluindo melhorias e alertas.
+
+✅ O que esse script faz?
+Dado um arquivo ou URL com especificação OpenAPI em JSON, ele:
+
+Extrai todos os schemas da seção components e gera modelos Pydantic correspondentes.
+
+Para cada path, method, requestBody, response, gera um método assíncrono para a classe APIClient.
+
+Salva tudo no arquivo client.py.
+
+🧱 Estrutura do Cliente Gerado
+1. BaseModel do Pydantic
+Cada schema vira algo como:
+
+python
+Copy
+Edit
+class User(BaseModel):
+    id: int
+    name: str
+    email: Optional[str] = None
+2. Classe APIClient
+Contém um httpx.AsyncClient, com métodos como:
+
+python
+Copy
+Edit
+async def users_get(self, params: Optional[Dict[str, Any]] = None) -> List[User]:
+    """
+    Gets a list of users
+    """
+    url = "/users"
+    response = await self.client.request("GET", url, params=params)
+    response.raise_for_status()
+    return [User(**item) for item in response.json()]
+🔍 Pontos Fortes
+✅ Geração automática de clientes compatíveis com async/await.
+
+✅ Suporte a path parameters (como /user/{id}).
+
+✅ Criação de modelos Pydantic.
+
+✅ Boa cobertura de OpenAPI 3.0 (básica).
+
+✅ Docstring descritiva do endpoint.
+
+⚠️ Pontos de Atenção / Melhorias sugeridas
+1. Verificação de HTTPS
+python
+Copy
+Edit
+response = httpx.get(openapi_json, timeout=10000, verify=False)
+Sugestão: Evite verify=False por padrão. É inseguro.
+
+2. method_name frágil
+python
+Copy
+Edit
+method_name = re.sub(r"\{.*?\}", "specific", method_name)
+Isso pode gerar métodos genéricos e colidirem. Melhor usar path.replace("/", "__") + method.
+
+3. Ignora headers globais ou security schemes
+Se a API exige Authorization, isso não está automatizado.
+
+4. Falta suporte a query parameters documentados
+Só adiciona params, mas não gera com base na OpenAPI (parameters → in: query).
+
+5. Dict[str, Any] como fallback
+Modelos que não têm $ref são ignorados, o que pode gerar códigos muito genéricos.
+
+💡 Sugestões de Extensões Futuras
+ Gerar documentação local ou README com exemplo de uso.
+
+ Suporte a autenticação (securitySchemes).
+
+ Geração opcional de clientes síncronos (httpx.Client).
+
+ Adicionar suporte a parâmetros de cabeçalho e cookie (in: header, in: cookie).
+
+ Adicionar anotação dos status HTTP esperados.
+
+ Testar APIs com base no schema: gerar pytest de contrato.
+
+🧪 Como usar
+bash
+Copy
+Edit
+python generate_client.py https://minhaapi.com/openapi.json
+Ele salva um client.py que pode ser usado assim:
+
+python
+Copy
+Edit
+from client import APIClient
+
+async def main():
+    async with APIClient(base_url="https://api.exemplo.com") as client:
+        user = await client.users__get()
+
+import asyncio
+asyncio.run(main())
+Se quiser, posso te ajudar a:
+
+Refatorar esse script para torná-lo mais robusto.
+
+Gerar também testes automaticamente.
+
+Transformá-lo em um CLI de uso geral.
+
+Quer seguir por algum desses caminhos?
+"""
+
 import json
+from os import path
 import sys
 from typing import Optional
 import httpx
@@ -51,7 +166,7 @@ class APIClient:
 
 def extract_path_params(method_name):
     path_params = []
-    matches = re.findall(r"\{(.*?)\}", method_name)  # Captura todas as ocorrências
+    matches = path.replace("/", "__") + method_name  # Captura todas as ocorrências
 
     for match in matches:
         path_params.append(match)
