@@ -1,3 +1,4 @@
+from typing import Any, Sequence
 from src.database.entities import AsyncSessionFactory
 from src.repositories import (
     UserRepository,
@@ -56,3 +57,8 @@ class UnityOfWork:
 
     async def commit(self):
         await self.session.commit()
+
+
+    async def refresh(self, items: Sequence[Any]):
+        for item in items:
+            await self.session.refresh(item)

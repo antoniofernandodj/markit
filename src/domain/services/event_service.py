@@ -167,6 +167,10 @@ class EventService:
             print('Calendario publico')
             return True
 
+        if calendar.user_id == logged_user_id:
+            print('Proprietario do calendario')
+            return True
+
         sharing_repository = SharingRepository(self.session)
         if sharing_code is None:
             print('Nenhum codigo de compartilhamento encontrado')
@@ -185,7 +189,12 @@ class EventService:
             print('Operação não permitida')
             return False
 
+        sharing_user = await self.user_service.obter_por_email(sharing.shared_with_email)
+        if sharing_user is None:
+            print('Usuario não encontrado')
+            return False
+
         return (
-            sharing.shared_with_id == logged_user_id and
+            sharing_user.id == logged_user_id and
             sharing.calendar_id == event.calendar_id
         )

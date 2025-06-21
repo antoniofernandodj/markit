@@ -143,8 +143,9 @@ class CalendarRepository:
     async def all(self) -> Sequence[Calendar]:
         return await self.repo.all()
 
-    async def save(self, entity: Calendar) -> None:
+    async def save(self, entity: Calendar) -> Calendar:
         await self.repo.save(entity)
+        return entity
 
     async def update(self, id, data: dict) -> None:
         await self.repo.update(id, data)

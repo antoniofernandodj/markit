@@ -1,3 +1,4 @@
+from src.api.schema import SharingResponse
 from src.cli.utils import run_async
 from src.uow import UnityOfWork
 from typer import Typer, confirm, prompt, echo
@@ -12,22 +13,23 @@ app = Typer(help='Comandos para gerenciar compartilhamentos.')
 async def calendar(calendar_id: str):
     """Compartilha um calendário com outro usuário."""
 
-    shared_with_id = prompt("ID do usuário com quem deseja compartilhar")
+    shared_with_email = prompt("ID do usuário com quem deseja compartilhar")
     public = confirm("Deseja tornar o compartilhamento público?")
     permissions = prompt("Permissões", type=Choice(["read", "write", "read_write"]))
 
     async with UnityOfWork() as uow:
         sharing = await uow.sharing_service.compartilhar_calendario(
             calendar_id=calendar_id,
-            shared_with_id=shared_with_id,
+            shared_with_email=shared_with_email,
             public=public,
             permissions=permissions
         )
 
         await uow.commit()
+        await uow.refresh([sharing])
 
     echo("Calendário compartilhado com sucesso!")
-    echo(sharing.to_pydantic().model_dump_json(indent=4))
+    echo(SharingResponse.model_validate(sharing).model_dump_json(indent=4))
 
 
 @app.command()
@@ -39,7 +41,7 @@ async def list_from_calendar(calendar_id: str):
         sharings = await uow.sharing_service.obter_compartilhamentos_por_calendario(calendar_id)
 
     for sharing in sharings:
-        echo(sharing.to_pydantic().model_dump_json(indent=4))
+        echo(SharingResponse.model_validate(sharing).model_dump_json(indent=4))
 
 
 @app.command()

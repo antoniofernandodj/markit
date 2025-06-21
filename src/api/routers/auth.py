@@ -1,3 +1,4 @@
+from typing_extensions import Optional
 from fastapi import APIRouter, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 from src.api import depends
@@ -17,6 +18,7 @@ router = APIRouter(tags=['Auth'])
 class AuthController:
 
     uow: UnityOfWork = depends.uow
+    token: Optional[str] = depends.token
 
     @router.post(
         "/login/",
@@ -29,12 +31,8 @@ class AuthController:
         self,
         form_data: OAuth2PasswordRequestForm = depends.form_data
     ):
-        auth_service = ApiAuthService()
 
-        print('----------')
-        print(form_data.username)
-        print(form_data.password)
-        print('----------')
+        auth_service = ApiAuthService()
 
         user = await self.uow.user_service.repo.find_by_email(form_data.username)
         if not user or not auth_service.autenticar_usuario(user, form_data.password):
@@ -58,4 +56,4 @@ class AuthController:
         self,
         current_user: User = depends.current_user
     ):
-        return current_user.to_pydantic()
+        return UserResponse.model_validate(current_user)

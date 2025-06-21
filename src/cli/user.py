@@ -1,5 +1,5 @@
 from typer import Typer, confirm, prompt, echo
-from src.api.schema import UserCreateRequest, UserUpdateRequest
+from src.api.schema import UserCreateRequest, UserResponse, UserUpdateRequest
 from src.cli.utils import run_async
 from src.uow import UnityOfWork
 
@@ -23,15 +23,17 @@ async def create():
     body = UserCreateRequest(name=nome, email=email, password=senha)
 
     async with UnityOfWork() as uow:
-        await uow.user_service.cadastrar_usuario(
+        user = await uow.user_service.cadastrar_usuario(
             nome=body.name,
             email=body.email,
             senha=body.password
         )
 
         await uow.commit()
+        await uow.refresh([user])
 
     echo(f"Usuário {body.name} cadastrado com sucesso!")
+    echo(f"ID: {user.get_id()}")
 
 
 @app.command()
@@ -91,4 +93,4 @@ async def list_all():
             return
 
         for usuario in usuarios:
-            echo(usuario.to_pydantic().model_dump_json(indent=4))
+            echo(UserResponse.model_validate(usuario).model_dump_json(indent=4))

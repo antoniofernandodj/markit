@@ -24,25 +24,7 @@ from src.domain.models import Permission
 
 
 
-
-
 metadata = MetaData()
-
-database_url = URL.create(
-    drivername='mysql+aiomysql',
-    username='root',
-    password='I*2021t1201',
-    host='localhost',
-    database='markit',
-)
-
-sync_database_url = URL.create(
-    drivername='mysql+pymysql',
-    username='root',
-    password='I*2021t1201',
-    host='localhost',
-    database='markit',
-)
 
 
 def default_uuid() -> str:
@@ -90,19 +72,31 @@ sharing = Table(
     Column('id', String(100), primary_key=True, default=default_uuid),
     Column('permissions', Enum(Permission), primary_key=True, default=default_uuid),
     Column('calendar_id', String(100), ForeignKey('calendars.id', ondelete='CASCADE')),
-    Column('shared_with_id', String(100), ForeignKey('users.id', ondelete='CASCADE')),
+    Column('shared_with_email', String(100)),
     Column('public', Boolean, default=False),
 )
 
 
 engine = create_async_engine(
-    database_url,
+    URL.create(
+        drivername='mysql+aiomysql',
+        username='root',
+        password='I*2021t1201',
+        host='localhost',
+        database='markit',
+    ),
     pool_size=10,
     max_overflow=5
 )
 
 sync_engine = create_engine(
-    sync_database_url,
+    URL.create(
+        drivername='mysql+pymysql',
+        username='root',
+        password='I*2021t1201',
+        host='localhost',
+        database='markit',
+    ),
     pool_size=10,
     max_overflow=5
 )

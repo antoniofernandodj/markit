@@ -1,10 +1,13 @@
 from fastapi import APIRouter, Request
 from typing import Optional
+
+from fastapi.params import Depends
 from src.api.schema import ApiResponse, EventCreateRequest, EventResponse, EventUpdateRequest
 from src.api import depends
 from src.api.utils import get_logged_in_id, get_token
 from fastapi_utils.cbv import cbv
 
+from src.domain.models.event import Event
 from src.uow import UnityOfWork
 
 
@@ -16,6 +19,7 @@ class EventController:
 
     uow: UnityOfWork = depends.uow
     request: Request
+    token: Optional[str] = depends.token
 
     @router.get(
         "/eventos/{event_id}",
@@ -24,16 +28,18 @@ class EventController:
         description="Retorna um evento específico pelo ID, verificando "
         "as permissões do usuário logado ou do código de compartilhamento."
     )
-    async def acessar_evento_por_id(self, event_id: str) -> EventResponse:
-        token: Optional[str] = get_token(self.request)
+    async def acessar_evento_por_id(
+        self,
+        event_id: str,
+    ) -> EventResponse:
 
-        event = await self.uow.event_service.acessar_evento_por_id(
+        event: Event = await self.uow.event_service.acessar_evento_por_id(
             event_id=event_id,
-            logged_in_id=await get_logged_in_id(token),
+            logged_in_id=await get_logged_in_id(self.token),
             sharing_code=self.request.headers.get('sharing_code')
         )
 
-        return event.to_pydantic()
+        return EventResponse.model_validate(event)
 
 
     @router.post(
@@ -45,7 +51,7 @@ class EventController:
     )
     async def cadastrar_evento(self, body: EventCreateRequest) -> ApiResponse:
 
-        await self.uow.event_service.cadastrar_evento(
+        evento = await self.uow.event_service.cadastrar_evento(
             calendar_id=body.calendar_id,
             titulo=body.title,
             descricao=body.description,
@@ -53,10 +59,11 @@ class EventController:
             fim=body.end_time,
             recorrente=body.is_recurring
         )
-
+        await self.uow.commit()
+        await self.uow.refresh([evento])
         return ApiResponse(
             detail="Evento cadastrado com sucesso!",
-            resource=body.model_dump()
+            resource={'id': evento.id}
         )
 
 
@@ -67,15 +74,17 @@ class EventController:
         description="Remove um evento específico, verificando as "
         "permissões de acesso do usuário ou o código de compartilhamento."
     )
-    async def deletar_evento(self, event_id: str) -> ApiResponse:
-
-        token: Optional[str] = get_token(self.request)
+    async def deletar_evento(
+        self,
+        event_id: str,
+    ) -> ApiResponse:
 
         await self.uow.event_service.deletar_evento(
             event_id=event_id,
-            logged_in_id=await get_logged_in_id(token),
+            logged_in_id=await get_logged_in_id(self.token),
             sharing_code=self.request.headers.get('sharing_code')
         )
+        await self.uow.commit()
         return ApiResponse(detail="Evento removido com sucesso")
 
 
@@ -86,9 +95,11 @@ class EventController:
         description="Atualiza os detalhes de um evento específico, "
         "verificando as permissões do usuário ou o código de compartilhamento."
     )
-    async def atualizar_evento(self, event_id: str, body: EventUpdateRequest) -> ApiResponse:
-
-        token: Optional[str] = get_token(self.request)
+    async def atualizar_evento(
+        self,
+        event_id: str,
+        body: EventUpdateRequest,
+    ) -> ApiResponse:
 
         await self.uow.event_service.atualizar_evento(
             event_id=event_id,
@@ -97,7 +108,8 @@ class EventController:
             inicio=body.start_time,
             fim=body.end_time,
             recorrente=body.is_recurring,
-            logged_in_id=await get_logged_in_id(token),
+            logged_in_id=await get_logged_in_id(self.token),
             sharing_code=self.request.headers.get('sharing_code'),
         )
+        await self.uow.commit()
         return ApiResponse(detail="Evento atualizado com sucesso")

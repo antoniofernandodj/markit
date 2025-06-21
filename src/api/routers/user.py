@@ -1,3 +1,4 @@
+from typing_extensions import Optional
 from fastapi import APIRouter, HTTPException, status
 from src.api import depends
 from src.api.schema import ApiResponse, UserCreateRequest, UserUpdateRequest
@@ -12,6 +13,7 @@ router = APIRouter(tags=['User'])
 class UserController:
 
     uow: UnityOfWork = depends.uow
+    token: Optional[str] = depends.token
 
     @router.post(
         "/usuarios/",
@@ -23,24 +25,31 @@ class UserController:
     )
     async def cadastrar_usuario(self, body: UserCreateRequest) -> ApiResponse:
 
-        await self.uow.user_service.cadastrar_usuario(
+        user = await self.uow.user_service.cadastrar_usuario(
             nome=body.name,
             email=body.email,
             senha=body.password
         )
-        res = body.model_dump()
-        res.pop('senha', None)
+
+        await self.uow.commit()
+        await self.uow.refresh([user])
 
         return ApiResponse(
             detail="Usuário cadastrado com sucesso!",
-            resource=res
+            resource={
+                'id': user.id,
+                'nome': body.name,
+                'email': body.email,
+            }
         )
 
     @router.delete(
         "/usuarios/{user_id}",
         response_model=ApiResponse,
         summary="Remover um usuário",
-        description="Remove um usuário existente pelo seu ID. Se o usuário não for encontrado, retorna um erro 404."
+        description="Remove um usuário existente pelo "
+        "seu ID. Se o usuário não for encontrado, "
+        "retorna um erro 404."
     )
     async def remover_usuario(self, user_id: str) -> ApiResponse:
 
@@ -52,6 +61,7 @@ class UserController:
             )
 
         await self.uow.user_service.remover_usuario(user)
+        await self.uow.commit()
         return ApiResponse(detail="Usuário removido com sucesso")
 
     @router.put(
@@ -72,5 +82,5 @@ class UserController:
             email=body.email,
             senha=body.password
         )
-
+        await self.uow.commit()
         return ApiResponse(detail="Dados de usuario atualizados com sucesso!")

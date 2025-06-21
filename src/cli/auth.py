@@ -1,4 +1,5 @@
 from typer import Typer, prompt, echo, Exit
+from src.api.schema import UserResponse
 from src.api.security.auth import ApiAuthService
 from src.cli.utils import run_async
 from src.uow import UnityOfWork
@@ -36,4 +37,4 @@ async def ler_meus_dados():
     async with UnityOfWork() as uow:
         user = await uow.user_service.repo.get(user_id)
 
-    echo(user.to_pydantic().model_dump_json(indent=4))
+    echo(UserResponse.model_validate(user).model_dump_json(indent=4))

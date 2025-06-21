@@ -1,8 +1,10 @@
-
+from __future__ import annotations
 
 from datetime import datetime
 from typing import Any, Dict, Optional, Sequence, List
 from pydantic import BaseModel, EmailStr
+
+from src.domain.models.calendar import Calendar
 
 
 class UserCreateRequest(BaseModel):
@@ -41,7 +43,7 @@ class EventUpdateRequest(BaseModel):
 
 class SharingCreateRequest(BaseModel):
     calendar_id: str
-    shared_with_id: str
+    shared_with_email: str
     permissions: str
     public: bool
 
@@ -67,24 +69,57 @@ class EventResponse(BaseModel):
     is_recurring: Optional[bool] = False
 
 
+class SharingResponse(BaseModel):
+    id: str
+    calendar_id: str
+    shared_with_email: str
+    permissions: str
+    public: bool
+
+
 class CalendarResponse(BaseModel):
     id: str
     name: str
     user_id: str
     events: Sequence[EventResponse]
+    sharings: Sequence[SharingResponse]
     public: bool
+
+    @classmethod
+    def model_validate_calendar_response(
+        cls,
+        model: Calendar,
+        eventos_recorrentes: Optional[bool] = None
+    ) -> CalendarResponse:
+
+        if eventos_recorrentes is None:
+            events = [EventResponse.model_validate(event) for event in model.events]
+
+        else:
+            events = [
+                EventResponse.model_validate(event) for event in model.events
+                if event.is_recurring == eventos_recorrentes
+            ]
+
+        return CalendarResponse(
+            id=model.get_id(),
+            name=model.name,
+            user_id=model.user_id,
+            public=model.public,
+            sharings=[
+                SharingResponse.model_validate(sharing)
+                for sharing in model.sharings
+            ],
+            events=events
+        )
 
 
 class CalendarsResponse(BaseModel):
     calendars: List[CalendarResponse]
 
 
-class SharingResponse(BaseModel):
-    id: str
-    calendar_id: str
-    shared_with_id: str
-    permissions: str
-    public: bool
+class SharingsResponse(BaseModel):
+    sharings: List[SharingResponse]
 
 
 class ApiResponse(BaseModel):
