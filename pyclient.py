@@ -166,7 +166,7 @@ class APIClient:
 
 def extract_path_params(method_name):
     path_params = []
-    matches = path.replace("/", "__") + method_name  # Captura todas as ocorrências
+    matches = method_name.replace("/", "__") + method_name  # Captura todas as ocorrências
 
     for match in matches:
         path_params.append(match)
@@ -300,8 +300,12 @@ def generate_method(
 
 def generate_client(openapi_json: str):
 
-    response = httpx.get(openapi_json, timeout=10000, verify=False)
-    spec = response.json()
+    try:
+        response = httpx.get(openapi_json, timeout=10000, verify=False)
+        spec = response.json()
+    except Exception:
+        with open(openapi_json) as f:
+            spec = json.load(f)
 
     models = []
     components = spec.get("components", {})
@@ -396,6 +400,6 @@ def generate_client(openapi_json: str):
 
 if __name__ == "__main__":
     if len(sys.argv) != 2:
-        print("Usage: python generate_client.py openapi.json")
+        print("Usage: python pyclient.py openapi.json")
         sys.exit(1)
     generate_client(sys.argv[1])

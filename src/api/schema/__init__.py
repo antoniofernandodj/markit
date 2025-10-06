@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any, Dict, Optional, Sequence, List
+from typing import TYPE_CHECKING, Any, Dict, List, Literal, Optional, Sequence
+
 from pydantic import BaseModel, EmailStr
 
-from src.domain.models.calendar import Calendar
+if TYPE_CHECKING:
+    from src.domain.models.calendar import Calendar
 
 
 class UserCreateRequest(BaseModel):
@@ -44,12 +46,12 @@ class EventUpdateRequest(BaseModel):
 class SharingCreateRequest(BaseModel):
     calendar_id: str
     shared_with_email: str
-    permissions: str
+    permissions: Literal['read', 'write', 'read_write']
     public: bool
 
 
 class SharingUpdateRequest(BaseModel):
-    permissions: str
+    permissions: Literal['read', 'write', 'read_write']
     public: bool
 
 
@@ -73,7 +75,7 @@ class SharingResponse(BaseModel):
     id: str
     calendar_id: str
     shared_with_email: str
-    permissions: str
+    permissions: Literal['read', 'write', 'read_write']
     public: bool
 
 
@@ -88,7 +90,7 @@ class CalendarResponse(BaseModel):
     @classmethod
     def model_validate_calendar_response(
         cls,
-        model: Calendar,
+        model: 'Calendar',
         eventos_recorrentes: Optional[bool] = None
     ) -> CalendarResponse:
 

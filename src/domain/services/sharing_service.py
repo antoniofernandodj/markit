@@ -1,12 +1,11 @@
-from typing import Sequence
+from typing import Literal, Sequence
 from sqlalchemy.ext.asyncio import AsyncSession
 from src.domain.models import Sharing
-from src.repositories import SharingRepository, UserRepository, CalendarRepository
+from src.repositories import SharingRepository, CalendarRepository
 from src.domain.exceptions import (
     CalendarioNaoEncontradoException,
     CompartilhamentoJaExistenteException,
-    CompartilhamentoNaoEncontradoException,
-    UsuarioNaoEncontradoException
+    CompartilhamentoNaoEncontradoException
 )
 
 from src.domain.services.calendar_service import CalendarService
@@ -22,7 +21,7 @@ class SharingService:
         calendar_id: str,
         shared_with_email: str,
         public: bool,
-        permissions: str
+        permissions: Literal['read', 'write', 'read_write']
     ) -> Sharing:
 
         calendar_service = CalendarService(self.session)
@@ -64,7 +63,7 @@ class SharingService:
     async def atualizar_compartilhamento(
         self,
         sharing_id: str,
-        permissions: str,
+        permissions: Literal['read', 'write', 'read_write'],
         public: bool
     ) -> None:
 

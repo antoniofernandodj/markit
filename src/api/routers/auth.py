@@ -34,7 +34,7 @@ class AuthController:
 
         auth_service = ApiAuthService()
 
-        user = await self.uow.user_service.repo.find_by_email(form_data.username)
+        user = await self.uow.user_service.obter_por_email(form_data.username)
         if not user or not auth_service.autenticar_usuario(user, form_data.password):
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,

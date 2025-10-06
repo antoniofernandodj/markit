@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Literal, Optional
 
 from src.domain.models.base import DomainModel
 from src.domain.models.permission import Permission
@@ -9,7 +9,7 @@ class Sharing(DomainModel):
         self,
         calendar_id: str,
         shared_with_email: str,
-        permissions: str,
+        permissions: Literal['read', 'write', 'read_write'],
         public: bool,
         id: Optional[str] = None,
     ):
